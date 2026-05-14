@@ -546,10 +546,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#api-clustering-backend" class="md-nav__link">
+  <a href="#clustering-compute" class="md-nav__link">
     <span class="md-ellipsis">
       
-        API Clustering Backend
+        Clustering Compute
       
     </span>
   </a>
@@ -747,10 +747,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#api-clustering-backend" class="md-nav__link">
+  <a href="#clustering-compute" class="md-nav__link">
     <span class="md-ellipsis">
       
-        API Clustering Backend
+        Clustering Compute
       
     </span>
   </a>
@@ -809,22 +809,20 @@
 
 <h1 id="deployment-notes">Deployment Notes</h1>
 <p>This page summarizes the operational pieces used by the API features that the Python client calls.</p>
-<h2 id="api-clustering-backend">API Clustering Backend</h2>
-<p>The <code>/search/cluster</code> endpoint and agent clustering can run in either the API process or AWS Lambda.</p>
-<p>Local backend:</p>
-<div class="highlight"><pre><span></span><code>EIGENLAKE_CLUSTERING_BACKEND=local
-</code></pre></div>
-<p>Lambda backend:</p>
+<h2 id="clustering-compute">Clustering Compute</h2>
+<p>The <code>/search/cluster</code> endpoint and agent clustering currently run through the Lambda compute backend in production deployments.</p>
+<p>Configure the API with:</p>
 <div class="highlight"><pre><span></span><code>EIGENLAKE_CLUSTERING_BACKEND=lambda
 EIGENLAKE_CLUSTERING_LAMBDA_NAME=eigenlake-clustering
 </code></pre></div>
-<p>The SDK call is the same for both backends:</p>
+<p>The SDK call does not need to know where compute runs:</p>
 <div class="highlight"><pre><span></span><code><span class="n">clusters</span> <span class="o">=</span> <span class="n">idx</span><span class="o">.</span><span class="n">search</span><span class="o">.</span><span class="n">cluster</span><span class="p">(</span>
     <span class="nb">filter</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;$in&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;failed&quot;</span><span class="p">,</span> <span class="s2">&quot;failure&quot;</span><span class="p">,</span> <span class="s2">&quot;error&quot;</span><span class="p">]}},</span>
     <span class="n">text_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;query&quot;</span><span class="p">,</span> <span class="s2">&quot;error_message&quot;</span><span class="p">],</span>
 <span class="p">)</span>
 </code></pre></div>
-<p>The response includes <code>backend</code> so callers can see where the work ran.</p>
+<p>The response includes <code>backend</code> so callers can see that the work ran on Lambda.</p>
+<p>Future compute backends may include GPUs, Spark, and automatic compute selection. In that model EigenLake will choose the compute target based on request size, latency needs, and resource requirements.</p>
 <h2 id="lambda-isolation">Lambda Isolation</h2>
 <p>The clustering Lambda runs the same KMeans implementation as the API, but outside the FastAPI process. The API invokes Lambda synchronously; AWS starts or reuses an execution environment automatically and freezes or retires it after the invoke.</p>
 <p>Deploy the Lambda from the API repository:</p>

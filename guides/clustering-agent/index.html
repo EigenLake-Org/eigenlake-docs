@@ -881,7 +881,7 @@
 </code></pre></div>
 <p>Typical response fields:</p>
 <ul>
-<li><code>backend</code>: <code>local</code> or <code>lambda</code></li>
+<li><code>backend</code>: currently <code>lambda</code> in production deployments</li>
 <li><code>algorithm</code>: currently <code>kmeans</code></li>
 <li><code>distance_metric</code>: <code>cosine</code> or <code>euclidean</code></li>
 <li><code>records_clustered</code>: number of records included after filtering</li>
@@ -914,7 +914,7 @@
 <span class="n">idx</span><span class="o">.</span><span class="n">agent</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;recent failures&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;filter&quot;</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="status">Status</h2>
-<p>Clustering is synchronous today. The API returns only after local clustering or Lambda clustering completes.</p>
+<p>Clustering is synchronous today. The API returns only after Lambda clustering completes.</p>
 <div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">clustering_status</span><span class="p">(</span><span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
     <span class="k">return</span> <span class="p">{</span>
         <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="s2">&quot;completed&quot;</span><span class="p">,</span>
@@ -926,6 +926,7 @@
 <span class="nb">print</span><span class="p">(</span><span class="n">clustering_status</span><span class="p">(</span><span class="n">clusters</span><span class="p">))</span>
 </code></pre></div>
 <p>There is no queued job ID yet for clustering. If <code>backend</code> is <code>lambda</code>, the API invoked Lambda and waited for the response.</p>
+<p>Future compute backends may include GPUs, Spark, and automatic compute selection based on request requirements.</p>
 <h2 id="full-demo">Full Demo</h2>
 <p>See the clustering demo notebook in the examples repository:</p>
 <div class="highlight"><pre><span></span><code>demos/clustering_agent/query_failures_clustering_demo.ipynb
