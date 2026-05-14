@@ -831,26 +831,30 @@
 
 <h1 id="clustering-and-agent-queries">Clustering and Agent Queries</h1>
 <p>EigenLake can group matching records into clusters directly from an index. This is useful for operational questions such as:</p>
-<div class="highlight"><pre><span></span><code>show me queries recent failures
+<div class="highlight"><pre><span></span><code>show me recent battery failures
 </code></pre></div>
-<p>The low-level API is explicit: you provide filters, limits, clustering options, and optional text fields used for cluster summaries. Agent mode sits one level above that: it inspects the natural language query, builds schema-aware filters for common cases such as recent failures, and decides whether to run clustering or return filtered records.</p>
+<p>The low-level API is explicit: you provide filters, limits, and clustering options. Agent mode sits one level above that: it inspects the natural language query, builds schema-aware filters for common cases such as recent failures, infers useful summary text fields, and decides whether to run clustering or return filtered records.</p>
 <h2 id="index-schema">Index Schema</h2>
-<p>Agent mode can only infer filters for fields that exist in the index schema. For failure analysis, define a filterable status field and a filterable timestamp field:</p>
+<p>Agent mode can only infer filters for fields that exist in the index schema. For an automotive failure analysis demo, define filterable fields such as <code>system</code>, <code>status</code>, and <code>created_at</code>, plus descriptive string fields for summaries:</p>
 <div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">eigenlake</span><span class="w"> </span><span class="kn">import</span> <span class="n">schema</span> <span class="k">as</span> <span class="n">s</span>
 
 <span class="n">schema</span><span class="p">,</span> <span class="n">index_options</span> <span class="o">=</span> <span class="p">(</span>
     <span class="n">s</span><span class="o">.</span><span class="n">SchemaBuilder</span><span class="p">(</span><span class="n">additional_properties</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;query_id&quot;</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">string</span><span class="p">(</span><span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">filterable</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
-    <span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;query&quot;</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">string</span><span class="p">(</span><span class="n">filterable</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
-    <span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;error_message&quot;</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">string</span><span class="p">(</span><span class="n">filterable</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
-    <span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;status&quot;</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">string</span><span class="p">(</span><span class="n">filterable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">enum</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;success&quot;</span><span class="p">,</span> <span class="s2">&quot;failed&quot;</span><span class="p">,</span> <span class="s2">&quot;failure&quot;</span><span class="p">,</span> <span class="s2">&quot;error&quot;</span><span class="p">]))</span>
+    <span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;vehicle_id&quot;</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">string</span><span class="p">(</span><span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">filterable</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+    <span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;model&quot;</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">string</span><span class="p">(</span><span class="n">filterable</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+    <span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;system&quot;</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">string</span><span class="p">(</span><span class="n">filterable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">enum</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;battery&quot;</span><span class="p">,</span> <span class="s2">&quot;charging&quot;</span><span class="p">,</span> <span class="s2">&quot;brake&quot;</span><span class="p">,</span> <span class="s2">&quot;powertrain&quot;</span><span class="p">]))</span>
+    <span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;status&quot;</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">string</span><span class="p">(</span><span class="n">filterable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">enum</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;ok&quot;</span><span class="p">,</span> <span class="s2">&quot;warning&quot;</span><span class="p">,</span> <span class="s2">&quot;failure&quot;</span><span class="p">]))</span>
+    <span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;severity&quot;</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">string</span><span class="p">(</span><span class="n">filterable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">enum</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;low&quot;</span><span class="p">,</span> <span class="s2">&quot;medium&quot;</span><span class="p">,</span> <span class="s2">&quot;high&quot;</span><span class="p">,</span> <span class="s2">&quot;critical&quot;</span><span class="p">]))</span>
+    <span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;fault_code&quot;</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">string</span><span class="p">(</span><span class="n">filterable</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+    <span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;symptom&quot;</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">string</span><span class="p">(</span><span class="n">filterable</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+    <span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;repair_note&quot;</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">string</span><span class="p">(</span><span class="n">filterable</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
     <span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;created_at&quot;</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span><span class="n">filterable</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
     <span class="o">.</span><span class="n">build</span><span class="p">()</span>
 <span class="p">)</span>
 
 <span class="n">idx</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">indexes</span><span class="o">.</span><span class="n">create_or_get</span><span class="p">(</span>
-    <span class="n">namespace</span><span class="o">=</span><span class="s2">&quot;demo-observability&quot;</span><span class="p">,</span>
-    <span class="n">index</span><span class="o">=</span><span class="s2">&quot;query-failures&quot;</span><span class="p">,</span>
+    <span class="n">namespace</span><span class="o">=</span><span class="s2">&quot;demo-automotive&quot;</span><span class="p">,</span>
+    <span class="n">index</span><span class="o">=</span><span class="s2">&quot;vehicle-failures&quot;</span><span class="p">,</span>
     <span class="n">dimensions</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
     <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
     <span class="n">index_options</span><span class="o">=</span><span class="n">index_options</span><span class="p">,</span>
@@ -860,7 +864,8 @@
 <h2 id="low-level-clustering">Low-Level Clustering</h2>
 <p>Use <code>idx.search.cluster(...)</code> when you already know the filter and clustering settings.</p>
 <div class="highlight"><pre><span></span><code><span class="n">recent_failure_filter</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;$in&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;failed&quot;</span><span class="p">,</span> <span class="s2">&quot;failure&quot;</span><span class="p">,</span> <span class="s2">&quot;error&quot;</span><span class="p">]},</span>
+    <span class="s2">&quot;system&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;$eq&quot;</span><span class="p">:</span> <span class="s2">&quot;battery&quot;</span><span class="p">},</span>
+    <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;$in&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;failure&quot;</span><span class="p">]},</span>
     <span class="s2">&quot;created_at&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;$gte&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;recent-start-iso8601&gt;&quot;</span><span class="p">},</span>
 <span class="p">}</span>
 
@@ -870,7 +875,6 @@
     <span class="n">algorithm</span><span class="o">=</span><span class="s2">&quot;kmeans&quot;</span><span class="p">,</span>
     <span class="n">num_clusters</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
     <span class="n">distance_metric</span><span class="o">=</span><span class="s2">&quot;cosine&quot;</span><span class="p">,</span>
-    <span class="n">text_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;query&quot;</span><span class="p">,</span> <span class="s2">&quot;error_message&quot;</span><span class="p">],</span>
     <span class="n">representatives_per_cluster</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
 <span class="p">)</span>
 
@@ -890,17 +894,7 @@
 <p>If <code>num_clusters</code> is omitted, the API chooses a small default based on the number of matching records.</p>
 <h2 id="agent-mode">Agent Mode</h2>
 <p>Use <code>idx.agent.query(...)</code> when the caller gives a natural language request and you want EigenLake to choose the action.</p>
-<div class="highlight"><pre><span></span><code><span class="n">result</span> <span class="o">=</span> <span class="n">idx</span><span class="o">.</span><span class="n">agent</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
-    <span class="s2">&quot;show me queries recent failures&quot;</span><span class="p">,</span>
-    <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span>
-    <span class="n">limit</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
-    <span class="n">num_clusters</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-    <span class="n">text_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;query&quot;</span><span class="p">,</span> <span class="s2">&quot;error_message&quot;</span><span class="p">],</span>
-    <span class="n">time_field</span><span class="o">=</span><span class="s2">&quot;created_at&quot;</span><span class="p">,</span>
-    <span class="n">failure_field</span><span class="o">=</span><span class="s2">&quot;status&quot;</span><span class="p">,</span>
-    <span class="n">failure_values</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;failure&quot;</span><span class="p">,</span> <span class="s2">&quot;failed&quot;</span><span class="p">,</span> <span class="s2">&quot;error&quot;</span><span class="p">],</span>
-    <span class="n">recent_days</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
-<span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="n">result</span> <span class="o">=</span> <span class="n">idx</span><span class="o">.</span><span class="n">agent</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;show me recent battery failures&quot;</span><span class="p">)</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;action&quot;</span><span class="p">])</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;filter&quot;</span><span class="p">])</span>
@@ -908,10 +902,26 @@
 <span class="k">for</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;clusters&quot;</span><span class="p">]:</span>
     <span class="nb">print</span><span class="p">(</span><span class="n">cluster</span><span class="p">[</span><span class="s2">&quot;count&quot;</span><span class="p">],</span> <span class="n">cluster</span><span class="p">[</span><span class="s2">&quot;summary&quot;</span><span class="p">])</span>
 </code></pre></div>
+<p>For this schema, the agent infers a filter similar to:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+    <span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;$in&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;failure&quot;</span><span class="p">]},</span>
+    <span class="s2">&quot;created_at&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;$gte&quot;</span><span class="p">:</span> <span class="s2">&quot;&lt;recent-start-iso8601&gt;&quot;</span><span class="p">},</span>
+    <span class="s2">&quot;system&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;$eq&quot;</span><span class="p">:</span> <span class="s2">&quot;battery&quot;</span><span class="p">},</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>It also infers summary fields such as <code>fault_code</code>, <code>symptom</code>, and <code>repair_note</code>.</p>
 <p>In <code>mode="auto"</code>, the agent currently uses simple, deterministic query hints. Queries containing clustering or failure-analysis language are routed to clustering. Other queries are routed to filtered record retrieval.</p>
 <p>You can force behavior:</p>
 <div class="highlight"><pre><span></span><code><span class="n">idx</span><span class="o">.</span><span class="n">agent</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;recent failures&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;cluster&quot;</span><span class="p">)</span>
 <span class="n">idx</span><span class="o">.</span><span class="n">agent</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="s2">&quot;recent failures&quot;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;filter&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p>Advanced overrides are still available when a schema uses unusual field names:</p>
+<div class="highlight"><pre><span></span><code><span class="n">idx</span><span class="o">.</span><span class="n">agent</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+    <span class="s2">&quot;show me recent failures&quot;</span><span class="p">,</span>
+    <span class="n">failure_field</span><span class="o">=</span><span class="s2">&quot;outcome&quot;</span><span class="p">,</span>
+    <span class="n">recent_days</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+    <span class="n">text_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;description&quot;</span><span class="p">,</span> <span class="s2">&quot;resolution&quot;</span><span class="p">],</span>
+<span class="p">)</span>
 </code></pre></div>
 <h2 id="status">Status</h2>
 <p>Clustering is synchronous today. The API returns only after Lambda clustering completes.</p>

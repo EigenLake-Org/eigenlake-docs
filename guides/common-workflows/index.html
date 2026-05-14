@@ -1008,7 +1008,6 @@
     <span class="n">limit</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
     <span class="n">num_clusters</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
     <span class="n">distance_metric</span><span class="o">=</span><span class="s2">&quot;cosine&quot;</span><span class="p">,</span>
-    <span class="n">text_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;query&quot;</span><span class="p">,</span> <span class="s2">&quot;error_message&quot;</span><span class="p">],</span>
     <span class="n">representatives_per_cluster</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
 <span class="p">)</span>
 
@@ -1019,8 +1018,6 @@
 <div class="highlight"><pre><span></span><code><span class="n">result</span> <span class="o">=</span> <span class="n">idx</span><span class="o">.</span><span class="n">agent</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
     <span class="s2">&quot;show me queries recent failures&quot;</span><span class="p">,</span>
     <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span>
-    <span class="n">recent_days</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>
-    <span class="n">text_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;query&quot;</span><span class="p">,</span> <span class="s2">&quot;error_message&quot;</span><span class="p">],</span>
 <span class="p">)</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">&quot;action&quot;</span><span class="p">])</span>

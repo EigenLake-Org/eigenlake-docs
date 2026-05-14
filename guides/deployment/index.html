@@ -818,7 +818,6 @@ EIGENLAKE_CLUSTERING_LAMBDA_NAME=eigenlake-clustering
 <p>The SDK call does not need to know where compute runs:</p>
 <div class="highlight"><pre><span></span><code><span class="n">clusters</span> <span class="o">=</span> <span class="n">idx</span><span class="o">.</span><span class="n">search</span><span class="o">.</span><span class="n">cluster</span><span class="p">(</span>
     <span class="nb">filter</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;$in&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;failed&quot;</span><span class="p">,</span> <span class="s2">&quot;failure&quot;</span><span class="p">,</span> <span class="s2">&quot;error&quot;</span><span class="p">]}},</span>
-    <span class="n">text_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;query&quot;</span><span class="p">,</span> <span class="s2">&quot;error_message&quot;</span><span class="p">],</span>
 <span class="p">)</span>
 </code></pre></div>
 <p>The response includes <code>backend</code> so callers can see that the work ran on Lambda.</p>
